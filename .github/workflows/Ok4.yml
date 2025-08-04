@@ -27,7 +27,7 @@ jobs:
       uses: github/codeql-action/init@v3
       with:
         languages: ${{ matrix.language }}
-        queries: security-extended,security-and-quality,security-experimental # Enhanced detection
+        queries: security-extended,security-and-quality,security-experimental,code-scanning # Enhanced detection
         # No external config file needed
 
     - name: Perform CodeQL Analysis
