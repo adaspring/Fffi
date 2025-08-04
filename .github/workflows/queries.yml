@@ -1,4 +1,4 @@
-name: "Enhanced Security Scan (Manual Trigger)"
+name: "Enhanced Security Scan"
 
 on:
   workflow_dispatch:  # Only manual trigger
