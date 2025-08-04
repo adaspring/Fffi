@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: ['python'] # Single language matrix for potential expansion
+        language: ['python', 'javascript'] # Single language matrix for potential expansion
 
     steps:
     - name: Checkout repository
