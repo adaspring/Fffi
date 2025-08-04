@@ -1,0 +1,547 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="results-dashboard" data-session-id="{{ session_id }}">
+  <!-- Header -->
+  <div class="dashboard-header">
+    <h1>Your Translation Results</h1>
+    <p class="subtitle">Session: {{ session_id }}</p>
+  </div>
+  
+  {% if not zip_files %}
+    <div class="alert alert-warning">
+      <span class="material-icons">warning</span>
+      No result files found. Please try again.
+    </div>
+  {% else %}
+    <!-- Main Dashboard Grid -->
+    <div class="dashboard-grid">
+      
+      <!-- Left Column: Downloads -->
+      <div class="dashboard-card">
+        <div class="card-header">
+          <span class="material-icons">download</span>
+          <h2>Download Results</h2>
+        </div>
+        <div class="card-content">
+          <div class="download-list">
+            {% for file in zip_files %}
+            <div class="download-item">
+              <div class="file-info">
+                <span class="material-icons">archive</span>
+                <div class="file-details">
+                  <span class="file-name">{{ file }}</span>
+                  <span class="file-size" data-file="{{ file }}">Computing size...</span>
+                </div>
+              </div>
+              <a href="/download/{{ session_id }}/{{ file }}" 
+                 class="download-btn"
+                 data-filename="{{ file }}">
+                <span class="material-icons">file_download</span>
+                Download
+              </a>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Translation Reviews -->
+      <div class="dashboard-card">
+        <div class="card-header">
+          <span class="material-icons">translate</span>
+          <h2>Translation Reviews</h2>
+        </div>
+        <div class="card-content">
+          <div id="file-selection-area">
+            <p class="section-description">Compare original text with DeepL and OpenAI translations:</p>
+            
+            <div id="available-files">
+              <!-- Files will be loaded here via JavaScript -->
+              <div class="loading-spinner">
+                <span class="material-icons rotating">refresh</span>
+                Loading available files...
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Actions Bar -->
+    <div class="actions-bar">
+      <a href="{{ url_for('main.metrics', session_id=session_id) }}" 
+         class="action-btn secondary" 
+         target="_blank">
+        <span class="material-icons">analytics</span>
+        View Metrics
+      </a>
+      
+      <a href="{{ url_for('main.index') }}" 
+         class="action-btn primary">
+        <span class="material-icons">add</span>
+        New Translation
+      </a>
+    </div>
+  {% endif %}
+</div>
+
+<style>
+/* Google Material Design inspired styles */
+.results-dashboard {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+  font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.dashboard-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.dashboard-header h1 {
+  font-size: 2.5rem;
+  font-weight: 400;
+  color: #202124;
+  margin: 0 0 8px 0;
+}
+
+.subtitle {
+  color: #5f6368;
+  font-size: 0.875rem;
+  margin: 0;
+  font-family: 'Roboto Mono', monospace;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+.dashboard-card {
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+  overflow: hidden;
+  transition: box-shadow 0.3s ease;
+}
+
+.dashboard-card:hover {
+  box-shadow: 0 4px 8px rgba(0,0,0,0.12), 0 2px 4px rgba(0,0,0,0.08);
+}
+
+.card-header {
+  background: #f8f9fa;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e8eaed;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.card-header .material-icons {
+  color: #1a73e8;
+  font-size: 24px;
+}
+
+.card-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 500;
+  color: #202124;
+}
+
+.card-content {
+  padding: 24px;
+}
+
+.download-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.download-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  transition: background-color 0.2s ease;
+}
+
+.download-item:hover {
+  background: #e8f0fe;
+}
+
+.file-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.file-info .material-icons {
+  color: #5f6368;
+  font-size: 20px;
+}
+
+.file-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.file-name {
+  font-weight: 500;
+  color: #202124;
+  font-size: 0.875rem;
+}
+
+.file-size {
+  color: #5f6368;
+  font-size: 0.75rem;
+}
+
+.download-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: #1a73e8;
+  color: white;
+  text-decoration: none;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+}
+
+.download-btn:hover {
+  background: #1557b0;
+  color: white;
+  text-decoration: none;
+}
+
+.download-btn .material-icons {
+  font-size: 18px;
+}
+
+.section-description {
+  color: #5f6368;
+  margin: 0 0 20px 0;
+  font-size: 0.875rem;
+}
+
+.file-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.file-item {
+  padding: 12px 16px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.file-item:hover {
+  background: #e8f0fe;
+  transform: translateY(-1px);
+}
+
+.file-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  color: #1a73e8;
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+
+.file-link .material-icons {
+  font-size: 18px;
+}
+
+.loading-spinner {
+  text-align: center;
+  padding: 40px 20px;
+  color: #5f6368;
+}
+
+.rotating {
+  animation: rotate 1s linear infinite;
+}
+
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.actions-bar {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  padding: 24px 0;
+  border-top: 1px solid #e8eaed;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border-radius: 24px;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+}
+
+.action-btn.primary {
+  background: #1a73e8;
+  color: white;
+}
+
+.action-btn.primary:hover {
+  background: #1557b0;
+  color: white;
+  text-decoration: none;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(26, 115, 232, 0.3);
+}
+
+.action-btn.secondary {
+  background: white;
+  color: #1a73e8;
+  border: 1px solid #dadce0;
+}
+
+.action-btn.secondary:hover {
+  background: #f8f9fa;
+  color: #1557b0;
+  text-decoration: none;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.action-btn .material-icons {
+  font-size: 18px;
+}
+
+.alert {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+}
+
+.alert.alert-warning {
+  background: #fef7e0;
+  color: #b8860b;
+  border: 1px solid #f9c74f;
+}
+
+.alert .material-icons {
+  font-size: 20px;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .actions-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .download-item {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+  
+  .download-btn {
+    justify-content: center;
+  }
+}
+
+/* No files state */
+.no-files {
+  text-align: center;
+  padding: 40px 20px;
+  color: #5f6368;
+}
+
+.no-files .material-icons {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+</style>
+
+<script>
+// Add Material Icons if not already included
+if (!document.querySelector('link[href*="material-icons"]')) {
+  const link = document.createElement('link');
+  link.href = 'https://fonts.googleapis.com/icon?family=Material+Icons';
+  link.rel = 'stylesheet';
+  document.head.appendChild(link);
+}
+
+// Add Google Fonts
+if (!document.querySelector('link[href*="fonts.googleapis.com"]')) {
+  const googleFonts = document.createElement('link');
+  googleFonts.href = 'https://fonts.googleapis.com/css2?family=Google+Sans:wght@300;400;500;700&family=Roboto+Mono:wght@400&display=swap';
+  googleFonts.rel = 'stylesheet';
+  document.head.appendChild(googleFonts);
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  const sessionId = document.querySelector('.results-dashboard').dataset.sessionId;
+  
+  // Load file sizes for downloads
+  document.querySelectorAll('.download-btn').forEach(link => {
+    fetch(link.href, { method: 'HEAD' })
+      .then(res => {
+        if (res.ok) {
+          const size = res.headers.get('Content-Length');
+          if (size) {
+            const sizeMB = (size / (1024 * 1024)).toFixed(1);
+            const sizeSpan = link.closest('.download-item').querySelector('.file-size');
+            sizeSpan.textContent = `${sizeMB} MB`;
+          }
+        }
+      })
+      .catch(() => {
+        const sizeSpan = link.closest('.download-item').querySelector('.file-size');
+        sizeSpan.textContent = 'Size unknown';
+      });
+  });
+
+  // Load available files for translation review
+  loadAvailableFiles(sessionId);
+
+  // Handle download errors
+  document.addEventListener('click', async (e) => {
+    if (e.target.closest('.download-btn')) {
+      e.preventDefault();
+      const link = e.target.closest('.download-btn');
+      try {
+        const response = await fetch(link.href);
+        if (response.ok) {
+          window.location = link.href; // Trigger download
+        } else {
+          const error = await response.json();
+          showNotification(`Download failed: ${error.message || 'Unknown error'}`, 'error');
+        }
+      } catch (err) {
+        showNotification('Network error during download', 'error');
+      }
+    }
+  });
+});
+
+async function loadAvailableFiles(sessionId) {
+  try {
+    const response = await fetch(`/api/available-files/${sessionId}`);
+    const data = await response.json();
+    
+    const container = document.getElementById('available-files');
+    
+    if (data.success && data.files && data.files.length > 0) {
+      container.innerHTML = `
+        <div class="file-list">
+          ${data.files.map(filename => `
+            <div class="file-item">
+              <a href="/language/${sessionId}/${filename}" 
+                 class="file-link" 
+                 target="_blank">
+                <span class="material-icons">description</span>
+                ${filename}
+              </a>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    } else {
+      container.innerHTML = `
+        <div class="no-files">
+          <span class="material-icons">folder_open</span>
+          <p>No processed files found for translation comparison.</p>
+        </div>
+      `;
+    }
+  } catch (error) {
+    console.error('Error loading files:', error);
+    document.getElementById('available-files').innerHTML = `
+      <div class="no-files">
+        <span class="material-icons">error_outline</span>
+        <p>Error loading files. Please refresh the page.</p>
+      </div>
+    `;
+  }
+}
+
+function showNotification(message, type = 'info') {
+  // Create notification
+  const notification = document.createElement('div');
+  notification.className = `notification ${type}`;
+  notification.innerHTML = `
+    <span class="material-icons">${type === 'error' ? 'error' : 'info'}</span>
+    ${message}
+  `;
+  
+  // Add styles if not exist
+  if (!document.getElementById('notification-styles')) {
+    const style = document.createElement('style');
+    style.id = 'notification-styles';
+    style.textContent = `
+      .notification {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: white;
+        padding: 16px 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        z-index: 1000;
+        animation: slideIn 0.3s ease;
+      }
+      .notification.error {
+        border-left: 4px solid #ea4335;
+      }
+      .notification.info {
+        border-left: 4px solid #1a73e8;
+      }
+      @keyframes slideIn {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+  
+  document.body.appendChild(notification);
+  
+  // Remove after 5 seconds
+  setTimeout(() => {
+    notification.style.animation = 'slideIn 0.3s ease reverse';
+    setTimeout(() => notification.remove(), 300);
+  }, 5000);
+}
+</script>
+{% endblock %}
