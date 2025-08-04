@@ -27,8 +27,11 @@ jobs:
       uses: github/codeql-action/init@v3
       with:
         languages: ${{ matrix.language }}
-        queries: +security-extended, +security-and-quality, +./.github/codeql/queries/
-        # REMOVED THE CONFIG-FILE REFERENCE
+        queries: |
+          security-extended
+          security-and-quality
+          ./.github/codeql/queries/python
+          ./.github/codeql/queries/javascript
 
     - name: Run CodeQL Analysis
       uses: github/codeql-action/analyze@v3
