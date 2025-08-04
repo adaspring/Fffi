@@ -1,0 +1,470 @@
+{% extends "base.html" %}
+
+{% block title %}Login - Translance{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-12 col-sm-8 col-md-6 col-lg-4 col-xl-4">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="fas fa-lock"></i> Access Options</h4>
+                </div>
+                <div class="card-body">
+                    {% if error %}
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <i class="fas fa-exclamation-circle"></i> {{ error }}
+                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    {% endif %}
+                    
+                    {% if message %}
+                    <div class="alert alert-info alert-dismissible fade show" role="alert">
+                        <i class="fas fa-info-circle"></i> {{ message }}
+                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Guest Access Option - Prominent -->
+                    <div class="guest-access-section mb-4">
+                        <form method="POST" action="{{ url_for('main.guest_login') }}" class="d-flex justify-content-center">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="fas fa-rocket"></i> Skip Login
+                            </button>
+                        </form>
+                        <small class="text-muted d-block text-center mt-2">
+                            Quick access without creating an account
+                        </small>
+                    </div>
+                    
+                    <hr>
+                    <div class="text-center text-muted mb-3">
+                        <small>Or login with your account</small>
+                    </div>
+                    
+                    <!-- Regular Login Form -->
+                    <form method="POST" action="{{ url_for('main.login') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        
+                        <div class="form-group">
+                            <label for="username">Username</label>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text"><i class="fas fa-user"></i></span>
+                                </div>
+                                <input type="text" class="form-control" id="username" 
+                                       name="username" 
+                                       placeholder="Enter your username">
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="password">Password</label>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text"><i class="fas fa-key"></i></span>
+                                </div>
+                                <input type="password" class="form-control" id="password" 
+                                       name="password" 
+                                       placeholder="Enter your password">
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <button type="submit" class="btn btn-primary btn-block">
+                                <i class="fas fa-sign-in-alt"></i> Login
+                            </button>
+                        </div>
+                    </form>
+                    
+                    <hr>
+                    
+                    <div class="text-center text-muted">
+                        <small>Translance &copy; 2026</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.guest-access-section {
+    padding: 20px;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 12px;
+    border: 2px solid #28a745;
+    box-shadow: 0 2px 10px rgba(40, 167, 69, 0.1);
+    text-align: center;
+    max-width: 350px;
+    margin: 0 auto;
+}
+
+.btn-success {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    border: none;
+    font-weight: 600;
+    padding: 12px 30px;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(40, 167, 69, 0.2);
+    display: inline-block;
+    min-width: auto;
+    max-width: 200px;
+}
+
+.btn-success:hover {
+    background: linear-gradient(135deg, #218838 0%, #1ba085 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(40, 167, 69, 0.3);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #007bff 0%, #6610f2 100%);
+    border: none;
+    font-weight: 500;
+    padding: 12px 24px;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #0056b3 0%, #520dc2 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3);
+}
+
+.card {
+    margin-top: 30px;
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    max-width: 100%;
+    overflow: hidden;
+}
+
+.card-header {
+    border-radius: 15px 15px 0 0 !important;
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    padding: 25px;
+    border: none;
+}
+
+.card-header h4 {
+    font-size: 1.4rem;
+    font-weight: 600;
+}
+
+.card-body {
+    padding: 40px;
+}
+
+.form-control {
+    border-radius: 8px;
+    border: 2px solid #e9ecef;
+    padding: 14px 18px;
+    font-size: 16px;
+    transition: all 0.3s ease;
+}
+
+.form-control:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.15);
+}
+
+.input-group-text {
+    background-color: #f8f9fa;
+    border: 2px solid #e9ecef;
+    border-right: none;
+    border-radius: 8px 0 0 8px;
+    padding: 14px 16px;
+    font-size: 16px;
+}
+
+.form-group {
+    margin-bottom: 25px;
+}
+
+.form-group label {
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 10px;
+    font-size: 16px;
+}
+
+hr {
+    border-top: 2px solid #e9ecef;
+    margin: 30px 0;
+    max-width: 300px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Desktop specific improvements - Much larger form */
+@media (min-width: 768px) {
+    .card {
+        max-width: 650px;
+        margin: 40px auto;
+    }
+    
+    .card-header {
+        padding: 40px;
+    }
+    
+    .card-header h4 {
+        font-size: 1.8rem;
+    }
+    
+    .card-body {
+        padding: 60px;
+    }
+    
+    .form-group {
+        max-width: 500px;
+        margin-left: auto;
+        margin-right: auto;
+        margin-bottom: 35px;
+    }
+    
+    .form-control {
+        padding: 18px 22px;
+        font-size: 18px;
+    }
+    
+    .input-group-text {
+        padding: 18px 20px;
+        font-size: 18px;
+        min-width: 55px;
+    }
+    
+    .btn-block {
+        max-width: 500px;
+        margin: 0 auto;
+        display: block;
+        padding: 16px 32px;
+        font-size: 18px;
+    }
+    
+    .guest-access-section {
+        max-width: 500px;
+        padding: 35px;
+    }
+    
+    .btn-success {
+        padding: 18px 45px;
+        font-size: 18px;
+        max-width: 280px;
+    }
+    
+    .form-group label {
+        font-size: 18px;
+        margin-bottom: 12px;
+    }
+}
+
+/* Large desktop improvements - Even bigger */
+@media (min-width: 992px) {
+    .card {
+        max-width: 750px;
+    }
+    
+    .card-header {
+        padding: 45px;
+    }
+    
+    .card-header h4 {
+        font-size: 2rem;
+    }
+    
+    .card-body {
+        padding: 70px;
+    }
+    
+    .form-group {
+        max-width: 600px;
+        margin-bottom: 40px;
+    }
+    
+    .form-control {
+        padding: 20px 24px;
+        font-size: 19px;
+    }
+    
+    .input-group-text {
+        padding: 20px 22px;
+        font-size: 19px;
+        min-width: 60px;
+    }
+    
+    .btn-block {
+        max-width: 600px;
+        padding: 18px 36px;
+        font-size: 19px;
+    }
+    
+    .btn-success {
+        padding: 20px 50px;
+        font-size: 19px;
+        max-width: 320px;
+    }
+    
+    .guest-access-section {
+        max-width: 600px;
+        padding: 40px;
+    }
+    
+    .form-group label {
+        font-size: 19px;
+        margin-bottom: 14px;
+    }
+    
+    hr {
+        margin: 40px 0;
+        max-width: 450px;
+    }
+}
+
+/* Extra large desktop - Maximum size */
+@media (min-width: 1200px) {
+    .card {
+        max-width: 850px;
+    }
+    
+    .card-header {
+        padding: 50px;
+    }
+    
+    .card-header h4 {
+        font-size: 2.2rem;
+    }
+    
+    .card-body {
+        padding: 80px;
+    }
+    
+    .form-group {
+        max-width: 700px;
+        margin-bottom: 45px;
+    }
+    
+    .form-control {
+        padding: 22px 26px;
+        font-size: 20px;
+    }
+    
+    .input-group-text {
+        padding: 22px 24px;
+        font-size: 20px;
+        min-width: 65px;
+    }
+    
+    .btn-block {
+        max-width: 700px;
+        padding: 20px 40px;
+        font-size: 20px;
+    }
+    
+    .btn-success {
+        padding: 22px 55px;
+        font-size: 20px;
+        max-width: 350px;
+    }
+    
+    .guest-access-section {
+        max-width: 700px;
+        padding: 45px;
+    }
+    
+    .form-group label {
+        font-size: 20px;
+        margin-bottom: 16px;
+    }
+    
+    hr {
+        margin: 45px 0;
+        max-width: 500px;
+    }
+}
+
+/* Mobile responsiveness - Keep original mobile sizes */
+@media (max-width: 767px) {
+    .container {
+        padding: 15px;
+    }
+    
+    .card {
+        margin-top: 20px;
+        max-width: 100%;
+    }
+    
+    .card-body {
+        padding: 20px;
+    }
+    
+    .guest-access-section {
+        padding: 15px;
+        max-width: 100%;
+    }
+    
+    .btn-lg {
+        padding: 10px 20px;
+        font-size: 16px;
+        max-width: 100%;
+    }
+    
+    .form-group {
+        max-width: 100%;
+    }
+    
+    .btn-block {
+        max-width: 100%;
+    }
+    
+    hr {
+        max-width: 100%;
+    }
+    
+    .form-control {
+        padding: 12px 15px;
+        font-size: 16px;
+    }
+    
+    .input-group-text {
+        padding: 12px 14px;
+        font-size: 16px;
+    }
+}
+
+/* Ensure proper spacing */
+.text-center.text-muted {
+    margin: 15px 0;
+    font-size: 16px;
+}
+
+.guest-access-section .text-muted {
+    margin-top: 12px !important;
+    font-size: 15px;
+}
+
+/* Alert improvements for larger form */
+@media (min-width: 768px) {
+    .alert {
+        font-size: 16px;
+        padding: 15px 20px;
+    }
+    
+    .text-center.text-muted {
+        font-size: 17px;
+    }
+    
+    .guest-access-section .text-muted {
+        font-size: 16px;
+    }
+}
+</style>
+{% endblock %}

@@ -1,0 +1,1587 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="comparison-container">
+    <!-- Hidden CSRF token for AJAX requests -->
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    
+    <h1>Translation Comparison: {{ filename }}</h1>
+    
+    {% if error_message %}
+        <div class="alert alert-danger">{{ error_message }}</div>
+    {% endif %}
+    
+    <div class="navigation-buttons">
+        <a href="/language/{{ session_id }}" class="btn btn-secondary">← Back to File Selection</a>
+        <a href="/results/{{ session_id }}" class="btn btn-secondary">← Back to Results</a>
+    </div>
+    
+    <!-- Review Text Segments Section -->
+    <div class="review-section">
+        <div class="section-header" onclick="toggleReviewSection('segments')">
+            <div class="section-title">
+                <i class="fas fa-puzzle-piece"></i>
+                <span>Review Text Segments</span>
+            </div>
+            <i class="fas fa-chevron-down section-arrow" id="arrow-segments"></i>
+        </div>
+        
+        <div class="section-content" id="content-segments" style="display: none;">
+            <!-- Block-based Final Edit Actions -->
+            <div class="final-actions-container">
+                <div class="final-actions-header">
+                    <h4><i class="fas fa-download"></i> Final Edit Actions (Segments)</h4>
+                    <p class="text-muted">Generate files with your block-based edits</p>
+                </div>
+                <div class="final-buttons">
+                    <button id="final-block-deepl-btn" class="btn btn-final-deepl" onclick="generateBlockFinalEdit('deepl')">
+                        <i class="fas fa-file-download"></i> Final DeepL Edit
+                        <span id="deepl-block-edit-count" class="edit-count">0 edits</span>
+                    </button>
+                    <button id="final-block-openai-btn" class="btn btn-final-openai" onclick="generateBlockFinalEdit('openai')">
+                        <i class="fas fa-file-download"></i> Final OpenAI Edit
+                        <span id="openai-block-edit-count" class="edit-count">0 edits</span>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Blocks Container -->
+            <div class="blocks-container">
+                <h3>Original Text Blocks</h3>
+                <div id="blocks-list" class="blocks-list">
+                    <!-- Blocks will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Review Complete Text Section -->
+    <div class="review-section">
+        <div class="section-header" onclick="toggleReviewSection('complete')">
+            <div class="section-title">
+                <i class="fas fa-file-alt"></i>
+                <span>Review Complete Text</span>
+            </div>
+            <i class="fas fa-chevron-down section-arrow" id="arrow-complete"></i>
+        </div>
+        
+        <div class="section-content" id="content-complete" style="display: none;">
+            <!-- Full-text Final Edit Actions -->
+            <div class="final-actions-container">
+                <div class="final-actions-header">
+                    <h4><i class="fas fa-download"></i> Final Edit Actions (Complete)</h4>
+                    <p class="text-muted">Generate files with your full-text edits</p>
+                </div>
+                <div class="final-buttons">
+                    <button id="final-full-deepl-btn" class="btn btn-final-deepl" onclick="generateFullFinalEdit('deepl')">
+                        <i class="fas fa-file-download"></i> Final Full DeepL
+                        <span id="deepl-full-edit-count" class="edit-count">No edits</span>
+                    </button>
+                    <button id="final-full-openai-btn" class="btn btn-final-openai" onclick="generateFullFinalEdit('openai')">
+                        <i class="fas fa-file-download"></i> Final Full OpenAI
+                        <span id="openai-full-edit-count" class="edit-count">No edits</span>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Complete Text Container -->
+            <div class="complete-text-container">
+                <h3>Complete Document Text</h3>
+                
+                <!-- Original Text (Collapsible) -->
+                <div class="text-block original-text-block">
+                    <div class="text-block-header" onclick="toggleTextBlock('original')">
+                        <div class="text-block-title">
+                            <i class="fas fa-file-text"></i>
+                            <span>Original Text</span>
+                            <span class="read-only-badge">Read Only</span>
+                        </div>
+                        <i class="fas fa-chevron-down text-block-arrow" id="arrow-original"></i>
+                    </div>
+                    <div class="text-block-content" id="content-original" style="display: none;">
+                        <div class="full-text-display" id="original-full-text">
+                            <!-- Original text will be populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- DeepL Translation (Collapsible & Editable) -->
+                <div class="text-block deepl-text-block">
+                    <div class="text-block-header" onclick="toggleTextBlock('deepl-full')">
+                        <div class="text-block-title">
+                            <i class="fas fa-language"></i>
+                            <span>DeepL Translation</span>
+                            <span class="edit-status-badge" id="deepl-full-status">Not Edited</span>
+                        </div>
+                        <i class="fas fa-chevron-down text-block-arrow" id="arrow-deepl-full"></i>
+                    </div>
+                    <div class="text-block-content" id="content-deepl-full" style="display: none;">
+                        <div class="full-text-display" id="deepl-full-text" style="display: block;">
+                            <!-- DeepL text will be populated by JavaScript -->
+                        </div>
+                        
+                        <!-- Edit Controls for Full DeepL -->
+                        <div class="full-edit-controls" style="display: none;" id="deepl-full-controls">
+                            <textarea id="deepl-full-editor" class="full-edit-textarea" placeholder="Edit the complete DeepL translation..."></textarea>
+                            <div class="full-button-group">
+                                <button class="btn btn-primary" onclick="saveFullEdit('deepl')">
+                                    <i class="fas fa-save"></i> Temporary Edit
+                                </button>
+                                <button class="btn btn-success" onclick="generateFullFinalEdit('deepl')">
+                                    <i class="fas fa-file-download"></i> Final Edit
+                                </button>
+                                <button class="btn btn-secondary" onclick="cancelFullEdit('deepl')">
+                                    <i class="fas fa-times"></i> Cancel
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Action Buttons for Full DeepL -->
+                        <div class="full-action-buttons" id="deepl-full-actions">
+                            <button class="btn btn-edit" onclick="startFullEdit('deepl')">
+                                <i class="fas fa-edit"></i> EDIT COMPLETE TEXT
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- OpenAI Translation (Collapsible & Editable) -->
+                <div class="text-block openai-text-block">
+                    <div class="text-block-header" onclick="toggleTextBlock('openai-full')">
+                        <div class="text-block-title">
+                            <i class="fas fa-robot"></i>
+                            <span>OpenAI Translation</span>
+                            <span class="edit-status-badge" id="openai-full-status">Not Edited</span>
+                        </div>
+                        <i class="fas fa-chevron-down text-block-arrow" id="arrow-openai-full"></i>
+                    </div>
+                    <div class="text-block-content" id="content-openai-full" style="display: none;">
+                        <div class="full-text-display" id="openai-full-text" style="display: block;">
+                            <!-- OpenAI text will be populated by JavaScript -->
+                        </div>
+                        
+                        <!-- Edit Controls for Full OpenAI -->
+                        <div class="full-edit-controls" style="display: none;" id="openai-full-controls">
+                            <textarea id="openai-full-editor" class="full-edit-textarea" placeholder="Edit the complete OpenAI translation..."></textarea>
+                            <div class="full-button-group">
+                                <button class="btn btn-primary" onclick="saveFullEdit('openai')">
+                                    <i class="fas fa-save"></i> Temporary Edit
+                                </button>
+                                <button class="btn btn-success" onclick="generateFullFinalEdit('openai')">
+                                    <i class="fas fa-file-download"></i> Final Edit
+                                </button>
+                                <button class="btn btn-secondary" onclick="cancelFullEdit('openai')">
+                                    <i class="fas fa-times"></i> Cancel
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Action Buttons for Full OpenAI -->
+                        <div class="full-action-buttons" id="openai-full-actions">
+                            <button class="btn btn-edit" onclick="startFullEdit('openai')">
+                                <i class="fas fa-edit"></i> EDIT COMPLETE TEXT
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Floating comparison button -->
+    <button id="compare-button" class="compare-floating-btn" onclick="toggleComparisonOverlay()" style="display: none;">
+        Compare Selected (<span id="selected-count">0</span>)
+    </button>
+    
+    <!-- Comparison overlay -->
+    <div id="comparison-overlay" class="comparison-overlay" style="display: none;">
+        <div class="overlay-header">
+            <h3>Block Comparison</h3>
+            <button class="close-btn" onclick="toggleComparisonOverlay()">×</button>
+        </div>
+        <div id="overlay-content" class="overlay-content">
+            <!-- Selected blocks will be displayed here -->
+        </div>
+    </div>
+    
+    <!-- Status Messages -->
+    <div id="status-messages"></div>
+</div>
+
+<script>
+// Raw data from backend (with segment format)
+const rawOriginalBlocks = {{ original_blocks | tojson }};
+const rawDeeplBlocks = {{ deepl_blocks | tojson }};
+const rawOpenaiBlocks = {{ openai_blocks | tojson }};
+const sessionId = "{{ session_id }}";
+
+// Memory storage for edits - 4 separate systems
+const deeplBlockEdits = new Map(); // Block-based DeepL edits
+const openaiBlockEdits = new Map(); // Block-based OpenAI edits
+const deeplFullEdits = new Map(); // Full-text DeepL edits (only one entry)
+const openaiFullEdits = new Map(); // Full-text OpenAI edits (only one entry)
+
+// Function to merge segments for the same block number
+function mergeSegments(blocks, isOriginalText = false) {
+    const merged = {};
+    
+    // Group by base block number
+    const grouped = {};
+    for (const [key, text] of Object.entries(blocks)) {
+        // Match block pattern - handle both regular and special cases
+        const match = key.match(/^BLOCK_(\d+)(_S\d+)?$/);
+        if (match) {
+            const blockNum = match[1];
+            const baseKey = `BLOCK_${blockNum}`;
+            
+            if (!grouped[baseKey]) {
+                grouped[baseKey] = [];
+            }
+            
+            // Extract segment number for sorting
+            const segMatch = key.match(/_S(\d+)$/);
+            const segNum = segMatch ? parseInt(segMatch[1]) : 1;
+            
+            grouped[baseKey].push({
+                segNum: segNum,
+                text: text,
+                originalKey: key
+            });
+        }
+    }
+    
+    // Merge segments for each block
+    for (const [blockKey, segments] of Object.entries(grouped)) {
+        // Sort by segment number
+        segments.sort((a, b) => a.segNum - b.segNum);
+        
+        if (segments.length === 1) {
+            // Single segment - keep as is
+            merged[blockKey] = segments[0].text;
+        } else {
+            // Multiple segments - merge with appropriate logic
+            if (isOriginalText) {
+                // For original text: preserve natural flow
+                merged[blockKey] = segments.map(s => s.text).join(' ');
+            } else {
+                // For translations: simple concatenation with space
+                merged[blockKey] = segments.map(s => s.text).join(' ');
+            }
+        }
+    }
+    
+    return merged;
+}
+
+// Function to merge all blocks into complete text
+function mergeToCompleteText(blocks) {
+    if (!blocks || Object.keys(blocks).length === 0) {
+        return "No text available";
+    }
+    
+    // Sort block IDs numerically and merge
+    const sortedBlockIds = Object.keys(blocks).sort((a, b) => {
+        const numA = parseInt(a.match(/\d+/)[0]);
+        const numB = parseInt(b.match(/\d+/)[0]);
+        return numA - numB;
+    });
+    
+    return sortedBlockIds.map(blockId => blocks[blockId]).join('\n\n');
+}
+
+// Create merged versions of all blocks
+const originalBlocks = mergeSegments(rawOriginalBlocks, true);
+const deeplBlocks = mergeSegments(rawDeeplBlocks, false);
+const openaiBlocks = mergeSegments(rawOpenaiBlocks, false);
+
+// Create complete text versions
+const originalCompleteText = mergeToCompleteText(originalBlocks);
+const deeplCompleteText = mergeToCompleteText(deeplBlocks);
+const openaiCompleteText = mergeToCompleteText(openaiBlocks);
+
+// Track selected blocks and edit states
+const selectedBlocks = new Set();
+const editStates = new Map(); // blockId-type -> {originalText: '...'}
+
+// Helper function to escape HTML
+function escapeHtml(text) {
+    const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+    };
+    return text.replace(/[&<>"']/g, m => map[m]);
+}
+
+// Toggle review sections (segments/complete)
+function toggleReviewSection(sectionType) {
+    const content = document.getElementById(`content-${sectionType}`);
+    const arrow = document.getElementById(`arrow-${sectionType}`);
+    
+    if (content.style.display === 'none') {
+        content.style.display = 'block';
+        arrow.style.transform = 'rotate(180deg)';
+    } else {
+        content.style.display = 'none';
+        arrow.style.transform = 'rotate(0deg)';
+    }
+}
+
+// Toggle text blocks (original/deepl-full/openai-full)
+function toggleTextBlock(blockType) {
+    const content = document.getElementById(`content-${blockType}`);
+    const arrow = document.getElementById(`arrow-${blockType}`);
+    
+    if (content.style.display === 'none') {
+        content.style.display = 'block';
+        arrow.style.transform = 'rotate(180deg)';
+    } else {
+        content.style.display = 'none';
+        arrow.style.transform = 'rotate(0deg)';
+    }
+}
+
+// Update global edit counters
+function updateBlockCounters() {
+    const deeplCount = document.getElementById('deepl-block-edit-count');
+    const openaiCount = document.getElementById('openai-block-edit-count');
+    
+    deeplCount.textContent = `${deeplBlockEdits.size} edits`;
+    openaiCount.textContent = `${openaiBlockEdits.size} edits`;
+    
+    // Update button states
+    const deeplBtn = document.getElementById('final-block-deepl-btn');
+    const openaiBtn = document.getElementById('final-block-openai-btn');
+    
+    deeplBtn.disabled = deeplBlockEdits.size === 0;
+    openaiBtn.disabled = openaiBlockEdits.size === 0;
+}
+
+// Update full-text counters
+function updateFullCounters() {
+    const deeplCount = document.getElementById('deepl-full-edit-count');
+    const openaiCount = document.getElementById('openai-full-edit-count');
+    const deeplStatus = document.getElementById('deepl-full-status');
+    const openaiStatus = document.getElementById('openai-full-status');
+    
+    const hasDeeplEdit = deeplFullEdits.size > 0;
+    const hasOpenaiEdit = openaiFullEdits.size > 0;
+    
+    deeplCount.textContent = hasDeeplEdit ? 'Edited' : 'No edits';
+    openaiCount.textContent = hasOpenaiEdit ? 'Edited' : 'No edits';
+    
+    deeplStatus.textContent = hasDeeplEdit ? 'Edited' : 'Not Edited';
+    openaiStatus.textContent = hasOpenaiEdit ? 'Edited' : 'Not Edited';
+    
+    deeplStatus.className = hasDeeplEdit ? 'edit-status-badge edited' : 'edit-status-badge';
+    openaiStatus.className = hasOpenaiEdit ? 'edit-status-badge edited' : 'edit-status-badge';
+    
+    // Update button states
+    const deeplBtn = document.getElementById('final-full-deepl-btn');
+    const openaiBtn = document.getElementById('final-full-openai-btn');
+    
+    deeplBtn.disabled = !hasDeeplEdit;
+    openaiBtn.disabled = !hasOpenaiEdit;
+}
+
+// Update block visual indicators
+function updateBlockIndicator(blockId, type) {
+    const translationItem = document.querySelector(`#translations-${blockId} .translation-item.${type}`);
+    const editMap = type === 'deepl' ? deeplBlockEdits : openaiBlockEdits;
+    
+    if (editMap.has(blockId)) {
+        translationItem.classList.add('edited');
+        
+        // Add edited badge if not already present
+        let badge = translationItem.querySelector('.edited-badge');
+        if (!badge) {
+            badge = document.createElement('span');
+            badge.className = 'edited-badge';
+            badge.innerHTML = '<i class="fas fa-check"></i> EDITED';
+            translationItem.querySelector('strong').appendChild(badge);
+        }
+    } else {
+        translationItem.classList.remove('edited');
+        
+        // Remove edited badge
+        const badge = translationItem.querySelector('.edited-badge');
+        if (badge) {
+            badge.remove();
+        }
+    }
+}
+
+// Full-text editing functions
+function startFullEdit(type) {
+    const textElement = document.getElementById(`${type}-full-text`);
+    const controlsElement = document.getElementById(`${type}-full-controls`);
+    const actionsElement = document.getElementById(`${type}-full-actions`);
+    const editorElement = document.getElementById(`${type}-full-editor`);
+    
+    // Hide text display and actions, show editor
+    textElement.style.display = 'none';
+    actionsElement.style.display = 'none';
+    controlsElement.style.display = 'block';
+    
+    // Get current text (edited version if available, otherwise original)
+    const editMap = type === 'deepl' ? deeplFullEdits : openaiFullEdits;
+    const originalText = type === 'deepl' ? deeplCompleteText : openaiCompleteText;
+    const currentText = editMap.get('complete') || originalText;
+    
+    editorElement.value = currentText;
+    editorElement.focus();
+}
+
+function cancelFullEdit(type) {
+    const textElement = document.getElementById(`${type}-full-text`);
+    const controlsElement = document.getElementById(`${type}-full-controls`);
+    const actionsElement = document.getElementById(`${type}-full-actions`);
+    
+    // Show text display and actions, hide editor
+    textElement.style.display = 'block';
+    actionsElement.style.display = 'block';
+    controlsElement.style.display = 'none';
+}
+
+function saveFullEdit(type) {
+    const editorElement = document.getElementById(`${type}-full-editor`);
+    const editedText = editorElement.value.trim();
+    
+    if (!editedText) {
+        showStatus('Please enter some text before saving.', 'error');
+        return;
+    }
+    
+    // Store in appropriate full-text memory
+    const editMap = type === 'deepl' ? deeplFullEdits : openaiFullEdits;
+    editMap.set('complete', editedText);
+    
+    // Update displayed text
+    const textElement = document.getElementById(`${type}-full-text`);
+    textElement.textContent = editedText;
+    
+    // Update counters and status
+    updateFullCounters();
+    
+    // Exit edit mode
+    cancelFullEdit(type);
+    
+    showStatus(`✅ Complete ${type} text saved temporarily`, 'success');
+}
+
+function generateFullFinalEdit(type) {
+    const editMap = type === 'deepl' ? deeplFullEdits : openaiFullEdits;
+    
+    if (editMap.size === 0) {
+        showStatus(`No complete ${type} edits to process`, 'error');
+        return;
+    }
+    
+    showStatus(`Generating final complete ${type} file...`, 'info');
+    
+    // Create a single block entry for the complete text
+    const updatedBlocks = {
+        'COMPLETE_TEXT_S1': editMap.get('complete')
+    };
+    
+    generateFinalFile(type, updatedBlocks, `final_full_${type}.html`);
+}
+
+// Block editing functions (existing functionality)
+function toggleTranslations(blockId) {
+    const translationDiv = document.getElementById(`translations-${blockId}`);
+    const eyeIcon = document.getElementById(`eye-${blockId}`);
+    
+    if (translationDiv.style.display === 'none' || !translationDiv.style.display) {
+        translationDiv.style.display = 'block';
+        eyeIcon.classList.add('active');
+        eyeIcon.textContent = '👁️';
+        selectedBlocks.add(blockId);
+    } else {
+        translationDiv.style.display = 'none';
+        eyeIcon.classList.remove('active');
+        eyeIcon.textContent = '👁️';
+        selectedBlocks.delete(blockId);
+    }
+    
+    updateCompareButton();
+}
+
+function updateCompareButton() {
+    const compareBtn = document.getElementById('compare-button');
+    const selectedCount = document.getElementById('selected-count');
+    
+    if (selectedBlocks.size > 0) {
+        compareBtn.style.display = 'block';
+        selectedCount.textContent = selectedBlocks.size;
+    } else {
+        compareBtn.style.display = 'none';
+    }
+}
+
+function toggleComparisonOverlay() {
+    const overlay = document.getElementById('comparison-overlay');
+    
+    if (overlay.style.display === 'none') {
+        overlay.style.display = 'flex';
+        populateComparisonOverlay();
+    } else {
+        overlay.style.display = 'none';
+    }
+}
+
+function populateComparisonOverlay() {
+    const overlayContent = document.getElementById('overlay-content');
+    overlayContent.innerHTML = '';
+    
+    const sortedSelected = Array.from(selectedBlocks).sort((a, b) => {
+        const numA = parseInt(a.match(/\d+/)[0]);
+        const numB = parseInt(b.match(/\d+/)[0]);
+        return numA - numB;
+    });
+    
+    sortedSelected.forEach(blockId => {
+        const originalText = originalBlocks[blockId];
+        const deeplText = deeplBlockEdits.get(blockId) || deeplBlocks[blockId] || 'Not available';
+        const openaiText = openaiBlockEdits.get(blockId) || openaiBlocks[blockId] || 'Not available';
+        
+        const cardHtml = `
+            <div class="comparison-card-mini">
+                <div class="card-header">${blockId}</div>
+                <div class="mini-translation original-mini">
+                    <div class="mini-label">Original</div>
+                    <div class="mini-text">${escapeHtml(originalText)}</div>
+                </div>
+                <div class="mini-translation deepl-mini">
+                    <div class="mini-label">DeepL ${deeplBlockEdits.has(blockId) ? '(Edited)' : ''}</div>
+                    <div class="mini-text">${escapeHtml(deeplText)}</div>
+                </div>
+                <div class="mini-translation openai-mini">
+                    <div class="mini-label">OpenAI ${openaiBlockEdits.has(blockId) ? '(Edited)' : ''}</div>
+                    <div class="mini-text">${escapeHtml(openaiText)}</div>
+                </div>
+            </div>
+        `;
+        
+        overlayContent.innerHTML += cardHtml;
+    });
+}
+
+function startEdit(blockId, type) {
+    const textElement = document.getElementById(`${type}-text-${blockId}`);
+    const controlsElement = document.getElementById(`${type}-controls-${blockId}`);
+    const editorElement = document.getElementById(`${type}-editor-${blockId}`);
+    const actionButtons = document.getElementById(`${type}-actions-${blockId}`);
+    
+    const currentText = textElement.textContent;
+    editStates.set(`${blockId}-${type}`, { originalText: currentText });
+    
+    textElement.style.display = 'none';
+    actionButtons.style.display = 'none';
+    controlsElement.style.display = 'block';
+    
+    const editMap = type === 'deepl' ? deeplBlockEdits : openaiBlockEdits;
+    const textToEdit = editMap.get(blockId) || currentText;
+    editorElement.value = textToEdit;
+    editorElement.focus();
+}
+
+function cancelEdit(blockId, type) {
+    const textElement = document.getElementById(`${type}-text-${blockId}`);
+    const controlsElement = document.getElementById(`${type}-controls-${blockId}`);
+    const actionButtons = document.getElementById(`${type}-actions-${blockId}`);
+    
+    textElement.style.display = 'block';
+    actionButtons.style.display = 'block';
+    controlsElement.style.display = 'none';
+    
+    editStates.delete(`${blockId}-${type}`);
+}
+
+function submitEdit(blockId, type) {
+    const editorElement = document.getElementById(`${type}-editor-${blockId}`);
+    const editedText = editorElement.value.trim();
+    
+    if (!editedText) {
+        showStatus('Please enter some text before saving.', 'error');
+        return;
+    }
+    
+    const editMap = type === 'deepl' ? deeplBlockEdits : openaiBlockEdits;
+    editMap.set(blockId, editedText);
+    
+    const textElement = document.getElementById(`${type}-text-${blockId}`);
+    textElement.textContent = editedText;
+    
+    updateBlockIndicator(blockId, type);
+    updateBlockCounters();
+    
+    cancelEdit(blockId, type);
+    
+    showStatus(`✅ ${blockId} ${type} edit saved to memory`, 'success');
+}
+
+function generateBlockFinalEdit(type) {
+    const editMap = type === 'deepl' ? deeplBlockEdits : openaiBlockEdits;
+    
+    if (editMap.size === 0) {
+        showStatus(`No ${type} block edits to process`, 'error');
+        return;
+    }
+    
+    showStatus(`Generating final ${type} file with ${editMap.size} block edits...`, 'info');
+    
+    const updatedBlocks = {};
+    for (const [blockId, text] of editMap.entries()) {
+        updatedBlocks[`${blockId}_S1`] = text;
+    }
+    
+    generateFinalFile(type, updatedBlocks, `final_${type}_complete.html`);
+}
+
+function generateFinalFile(type, updatedBlocks, filename) {
+    const formData = new FormData();
+    formData.append('translation_type', type);
+    formData.append('updated_blocks', JSON.stringify(updatedBlocks));
+    
+    const csrfToken = document.querySelector('input[name="csrf_token"]');
+    if (csrfToken) {
+        formData.append('csrf_token', csrfToken.value);
+    }
+    
+    fetch(`/api/regenerate/${sessionId}`, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(data => {
+                throw new Error(data.error || `HTTP ${response.status}`);
+            });
+        }
+        return response.blob();
+    })
+    .then(blob => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        
+        showStatus(`✅ Successfully generated ${filename}`, 'success');
+    })
+    .catch(error => {
+        console.error('Error generating final file:', error);
+        showStatus(`❌ ${error.message}`, 'error');
+    });
+}
+
+function showStatus(message, type) {
+    const container = document.getElementById('status-messages');
+    const messageElement = document.createElement('div');
+    messageElement.className = `status-message status-${type}`;
+    messageElement.innerHTML = `<i class="fas fa-${type === 'success' ? 'check' : type === 'error' ? 'exclamation-triangle' : 'info'}"></i> ${message}`;
+    
+    container.appendChild(messageElement);
+    
+    setTimeout(() => {
+        if (messageElement.parentNode) {
+            messageElement.parentNode.removeChild(messageElement);
+        }
+    }, 5000);
+    
+    messageElement.scrollIntoView({ behavior: 'smooth' });
+}
+
+// Initialize when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+    // Populate complete text sections
+    document.getElementById('original-full-text').textContent = originalCompleteText;
+    document.getElementById('deepl-full-text').textContent = deeplCompleteText;
+    document.getElementById('openai-full-text').textContent = openaiCompleteText;
+    
+    // Populate blocks list (existing functionality)
+    const blocksList = document.getElementById('blocks-list');
+    
+    const sortedBlockIds = Object.keys(originalBlocks).sort((a, b) => {
+        const numA = parseInt(a.match(/\d+/)[0]);
+        const numB = parseInt(b.match(/\d+/)[0]);
+        return numA - numB;
+    });
+    
+    sortedBlockIds.forEach(blockId => {
+        const originalText = originalBlocks[blockId];
+        const deeplText = deeplBlocks[blockId] || 'Not available';
+        const openaiText = openaiBlocks[blockId] || 'Not available';
+        
+        const blockHtml = `
+            <div class="block-item">
+                <div class="block-header" onclick="toggleTranslations('${blockId}')">
+                    <span class="eye-icon" id="eye-${blockId}">👁️</span>
+                    <span class="block-id">${blockId}:</span>
+                    <span class="block-preview">${escapeHtml(originalText.substring(0, 100))}${originalText.length > 100 ? '...' : ''}</span>
+                </div>
+                <div class="translations-container" id="translations-${blockId}" style="display: none;">
+                    <!-- Original Text (Read-only) -->
+                    <div class="translation-item original">
+                        <strong>Original:</strong>
+                        <div class="text-content">${escapeHtml(originalText)}</div>
+                    </div>
+                    
+                    <!-- DeepL Translation (Editable) -->
+                    <div class="translation-item deepl">
+                        <strong>DeepL:</strong>
+                        <div class="text-content" id="deepl-text-${blockId}">${escapeHtml(deeplText)}</div>
+                        
+                        <!-- Edit Controls for DeepL -->
+                        <div class="edit-controls" style="display: none;" id="deepl-controls-${blockId}">
+                            <textarea id="deepl-editor-${blockId}" class="edit-textarea"></textarea>
+                            <div class="button-group">
+                                <button class="btn btn-primary" onclick="submitEdit('${blockId}', 'deepl')">
+                                    <i class="fas fa-save"></i> Submit Edit
+                                </button>
+                                <button class="btn btn-secondary" onclick="cancelEdit('${blockId}', 'deepl')">
+                                    <i class="fas fa-times"></i> Cancel
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Action Buttons for DeepL -->
+                        <div class="action-buttons" id="deepl-actions-${blockId}">
+                            <button class="btn btn-edit" onclick="startEdit('${blockId}', 'deepl')">
+                                <i class="fas fa-edit"></i> EDIT
+                            </button>
+                            <button class="btn btn-final" onclick="generateBlockFinalEdit('deepl')">
+                                <i class="fas fa-file-download"></i> Final Edit
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- OpenAI Translation (Editable) -->
+                    <div class="translation-item openai">
+                        <strong>OpenAI:</strong>
+                        <div class="text-content" id="openai-text-${blockId}">${escapeHtml(openaiText)}</div>
+                        
+                        <!-- Edit Controls for OpenAI -->
+                        <div class="edit-controls" style="display: none;" id="openai-controls-${blockId}">
+                            <textarea id="openai-editor-${blockId}" class="edit-textarea"></textarea>
+                            <div class="button-group">
+                                <button class="btn btn-primary" onclick="submitEdit('${blockId}', 'openai')">
+                                    <i class="fas fa-save"></i> Submit Edit
+                                </button>
+                                <button class="btn btn-secondary" onclick="cancelEdit('${blockId}', 'openai')">
+                                    <i class="fas fa-times"></i> Cancel
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Action Buttons for OpenAI -->
+                        <div class="action-buttons" id="openai-actions-${blockId}">
+                            <button class="btn btn-edit" onclick="startEdit('${blockId}', 'openai')">
+                                <i class="fas fa-edit"></i> EDIT
+                            </button>
+                            <button class="btn btn-final" onclick="generateBlockFinalEdit('openai')">
+                                <i class="fas fa-file-download"></i> Final Edit
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        blocksList.innerHTML += blockHtml;
+    });
+    
+    // Initialize counters
+    updateBlockCounters();
+    updateFullCounters();
+});
+</script>
+
+<style>
+/* Main Container */
+.comparison-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.navigation-buttons {
+    margin: 20px 0;
+}
+
+.navigation-buttons .btn {
+    margin-right: 10px;
+}
+
+/* Review Sections - Google Material Design Style */
+.review-section {
+    background: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+.section-header {
+    padding: 16px 20px;
+    background: #f8f9fa;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: background-color 0.2s ease;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.section-header:hover {
+    background: #e9ecef;
+}
+
+.section-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-weight: 500;
+    font-size: 18px;
+    color: #333;
+}
+
+.section-arrow {
+    font-size: 16px;
+    color: #666;
+    transition: transform 0.3s ease;
+}
+
+.section-content {
+    padding: 20px;
+}
+
+/* Final Actions Container */
+.final-actions-container {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 24px;
+}
+
+.final-actions-header {
+    text-align: center;
+    margin-bottom: 16px;
+}
+
+.final-actions-header h4 {
+    color: #333;
+    margin: 0 0 6px 0;
+    font-size: 18px;
+    font-weight: 500;
+}
+
+.final-actions-header p {
+    margin: 0;
+    font-size: 14px;
+    color: #666;
+}
+
+.final-buttons {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.btn-final-deepl,
+.btn-final-openai {
+    padding: 12px 20px;
+    font-size: 14px;
+    font-weight: 500;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    min-width: 160px;
+    transition: all 0.2s ease;
+}
+
+.btn-final-deepl {
+    background: linear-gradient(135deg, #9c27b0, #673ab7);
+    color: white;
+}
+
+.btn-final-deepl:hover:not(:disabled) {
+    background: linear-gradient(135deg, #7b1fa2, #512da8);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(156, 39, 176, 0.3);
+}
+
+.btn-final-openai {
+    background: linear-gradient(135deg, #4caf50, #388e3c);
+    color: white;
+}
+
+.btn-final-openai:hover:not(:disabled) {
+    background: linear-gradient(135deg, #388e3c, #2e7d32);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(76, 175, 80, 0.3);
+}
+
+.btn-final-deepl:disabled,
+.btn-final-openai:disabled {
+    background: #9e9e9e;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.edit-count {
+    font-size: 11px;
+    font-weight: 400;
+    opacity: 0.9;
+}
+
+/* Complete Text Container */
+.complete-text-container {
+    margin-top: 20px;
+}
+
+.complete-text-container h3 {
+    margin-bottom: 20px;
+    color: #333;
+    font-size: 20px;
+    font-weight: 500;
+}
+
+/* Text Blocks */
+.text-block {
+    background: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    margin-bottom: 12px;
+    overflow: hidden;
+}
+
+.text-block-header {
+    padding: 12px 16px;
+    background: #f5f5f5;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: background-color 0.2s ease;
+}
+
+.text-block-header:hover {
+    background: #eeeeee;
+}
+
+.text-block-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 500;
+    color: #333;
+}
+
+.text-block-arrow {
+    font-size: 14px;
+    color: #666;
+    transition: transform 0.3s ease;
+}
+
+.read-only-badge {
+    background: #6c757d;
+    color: white;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    margin-left: 8px;
+}
+
+.edit-status-badge {
+    background: #dc3545;
+    color: white;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    margin-left: 8px;
+}
+
+.edit-status-badge.edited {
+    background: #28a745;
+}
+
+.text-block-content {
+    padding: 16px;
+}
+
+/* Full Text Display */
+.full-text-display {
+    background: #f8f9fa;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    padding: 16px;
+    font-family: 'Georgia', serif;
+    line-height: 1.6;
+    color: #333;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    max-height: 400px;
+    overflow-y: auto;
+    margin-bottom: 16px;
+}
+
+.original-text-block .full-text-display {
+    background: #e3f2fd;
+    border-color: #2196f3;
+}
+
+.deepl-text-block .full-text-display {
+    background: #f3e5f5;
+    border-color: #9c27b0;
+}
+
+.openai-text-block .full-text-display {
+    background: #e8f5e8;
+    border-color: #4caf50;
+}
+
+/* Full Edit Controls */
+.full-edit-controls {
+    margin-top: 16px;
+}
+
+.full-edit-textarea {
+    width: 100%;
+    min-height: 300px;
+    padding: 16px;
+    border: 2px solid #ddd;
+    border-radius: 6px;
+    font-family: 'Georgia', serif;
+    font-size: 14px;
+    line-height: 1.6;
+    resize: vertical;
+    margin-bottom: 16px;
+}
+
+.full-edit-textarea:focus {
+    border-color: #007bff;
+    outline: none;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.full-button-group {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.full-action-buttons {
+    text-align: center;
+}
+
+/* Blocks Container (existing) */
+.blocks-container {
+    margin-top: 20px;
+}
+
+.blocks-container h3 {
+    margin-bottom: 16px;
+    color: #333;
+    font-size: 18px;
+    font-weight: 500;
+}
+
+.blocks-list {
+    background-color: #f9f9f9;
+    border-radius: 6px;
+    padding: 16px;
+}
+
+.block-item {
+    margin-bottom: 12px;
+    background-color: white;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.block-header {
+    padding: 10px 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    transition: background-color 0.2s;
+}
+
+.block-header:hover {
+    background-color: #f5f5f5;
+}
+
+.eye-icon {
+    font-size: 16px;
+    margin-right: 8px;
+    transition: transform 0.2s;
+}
+
+.eye-icon.active {
+    transform: scale(1.1);
+}
+
+.block-id {
+    font-weight: bold;
+    margin-right: 8px;
+    color: #333;
+    font-size: 14px;
+}
+
+.block-preview {
+    color: #666;
+    flex: 1;
+    font-size: 14px;
+}
+
+.translations-container {
+    border-top: 1px solid #ddd;
+    padding: 12px;
+    background-color: #fafafa;
+}
+
+.translation-item {
+    padding: 12px;
+    margin-bottom: 8px;
+    border-radius: 4px;
+    position: relative;
+    transition: all 0.2s ease;
+}
+
+.translation-item:last-child {
+    margin-bottom: 0;
+}
+
+.translation-item.original {
+    background-color: #e3f2fd;
+    border-left: 3px solid #2196f3;
+}
+
+.translation-item.deepl {
+    background-color: #f3e5f5;
+    border-left: 3px solid #9c27b0;
+}
+
+.translation-item.openai {
+    background-color: #e8f5e8;
+    border-left: 3px solid #4caf50;
+}
+
+.translation-item.deepl.edited {
+    border-left: 4px solid #7b1fa2;
+    background-color: #f1e6f3;
+    box-shadow: 0 1px 4px rgba(156, 39, 176, 0.2);
+}
+
+.translation-item.openai.edited {
+    border-left: 4px solid #2e7d32;
+    background-color: #e6f3e7;
+    box-shadow: 0 1px 4px rgba(76, 175, 80, 0.2);
+}
+
+.edited-badge {
+    background-color: #28a745;
+    color: white;
+    font-size: 9px;
+    padding: 1px 4px;
+    border-radius: 2px;
+    margin-left: 6px;
+    font-weight: 400;
+}
+
+.translation-item strong {
+    display: flex;
+    align-items: center;
+    margin-bottom: 6px;
+    color: #333;
+    font-size: 13px;
+}
+
+.text-content {
+    line-height: 1.5;
+    color: #555;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    margin-bottom: 12px;
+    font-family: 'Georgia', serif;
+    font-size: 14px;
+}
+
+/* Edit Controls */
+.edit-controls {
+    margin-top: 12px;
+}
+
+.edit-textarea {
+    width: 100%;
+    min-height: 100px;
+    padding: 10px;
+    border: 2px solid #ddd;
+    border-radius: 4px;
+    font-family: 'Georgia', serif;
+    font-size: 13px;
+    line-height: 1.5;
+    resize: vertical;
+    margin-bottom: 12px;
+}
+
+.edit-textarea:focus {
+    border-color: #007bff;
+    outline: none;
+    box-shadow: 0 0 0 0.15rem rgba(0, 123, 255, 0.25);
+}
+
+/* Buttons */
+.button-group {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 6px;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+}
+
+.btn {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.2s;
+    text-decoration: none;
+}
+
+.btn-edit {
+    background-color: #ffc107;
+    color: #212529;
+}
+
+.btn-edit:hover {
+    background-color: #e0a800;
+}
+
+.btn-final {
+    background-color: #17a2b8;
+    color: white;
+}
+
+.btn-final:hover {
+    background-color: #138496;
+}
+
+.btn-primary {
+    background-color: #007bff;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #0056b3;
+}
+
+.btn-secondary {
+    background-color: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background-color: #545b62;
+}
+
+.btn-success {
+    background-color: #28a745;
+    color: white;
+}
+
+.btn-success:hover {
+    background-color: #218838;
+}
+
+/* Status Messages */
+#status-messages {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1500;
+    max-width: 400px;
+}
+
+.status-message {
+    padding: 12px 16px;
+    border-radius: 4px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    font-size: 14px;
+}
+
+.status-success {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.status-error {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.status-info {
+    background-color: #d1ecf1;
+    color: #0c5460;
+    border: 1px solid #bee5eb;
+}
+
+/* Floating compare button */
+.compare-floating-btn {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    background-color: #2196f3;
+    color: white;
+    border: none;
+    border-radius: 50px;
+    padding: 12px 20px;
+    font-size: 14px;
+    font-weight: 500;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    cursor: pointer;
+    z-index: 1000;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.compare-floating-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.4);
+}
+
+/* Comparison overlay */
+.comparison-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0,0,0,0.8);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.overlay-header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    background-color: white;
+    padding: 16px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #ddd;
+}
+
+.overlay-header h3 {
+    margin: 0;
+    color: #333;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    font-size: 28px;
+    cursor: pointer;
+    color: #666;
+    line-height: 1;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.close-btn:hover {
+    color: #333;
+}
+
+.overlay-content {
+    background-color: white;
+    border-radius: 6px;
+    width: 100%;
+    height: 100%;
+    padding-top: 70px;
+    padding-left: 16px;
+    padding-right: 16px;
+    padding-bottom: 16px;
+    overflow-y: auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+    align-content: start;
+}
+
+/* Mini comparison cards */
+.comparison-card-mini {
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 12px;
+    height: fit-content;
+}
+
+.card-header {
+    font-weight: 500;
+    font-size: 14px;
+    margin-bottom: 10px;
+    color: #333;
+    border-bottom: 1px solid #2196f3;
+    padding-bottom: 6px;
+}
+
+.mini-translation {
+    margin-bottom: 8px;
+    padding: 6px;
+    border-radius: 3px;
+    position: relative;
+    padding-left: 10px;
+}
+
+.mini-translation:last-child {
+    margin-bottom: 0;
+}
+
+.original-mini {
+    background-color: #e3f2fd;
+    border-left: 3px solid #2196f3;
+}
+
+.deepl-mini {
+    background-color: #f3e5f5;
+    border-left: 3px solid #9c27b0;
+}
+
+.openai-mini {
+    background-color: #e8f5e8;
+    border-left: 3px solid #4caf50;
+}
+
+.mini-label {
+    font-weight: 500;
+    font-size: 11px;
+    color: #666;
+    margin-bottom: 3px;
+}
+
+.mini-text {
+    font-size: 12px;
+    line-height: 1.4;
+    color: #444;
+    max-height: 80px;
+    overflow-y: auto;
+    word-wrap: break-word;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .comparison-container {
+        padding: 12px;
+    }
+    
+    .section-header {
+        padding: 12px 16px;
+    }
+    
+    .section-title {
+        font-size: 16px;
+    }
+    
+    .final-buttons {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .btn-final-deepl,
+    .btn-final-openai {
+        min-width: 200px;
+    }
+    
+    .full-button-group {
+        flex-direction: column;
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .button-group {
+        flex-direction: column;
+    }
+    
+    .block-header {
+        flex-wrap: wrap;
+    }
+    
+    .block-preview {
+        width: 100%;
+        margin-top: 4px;
+    }
+    
+    .overlay-content {
+        grid-template-columns: 1fr;
+        padding-top: 60px;
+    }
+    
+    #status-messages {
+        position: relative;
+        top: auto;
+        right: auto;
+        max-width: none;
+        margin: 16px 0;
+    }
+}
+
+/* Responsive grid for larger screens */
+@media (min-width: 1200px) {
+    .overlay-content {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (max-width: 1199px) and (min-width: 768px) {
+    .overlay-content {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+</style>
+{% endblock %}
