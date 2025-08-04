@@ -15,19 +15,20 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: ['python', 'javascript']  # Scans both Python and JS
+        language: ['python', 'javascript']
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
       with:
-        fetch-depth: 0  # Required for proper analysis
+        fetch-depth: 0
 
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v3
       with:
         languages: ${{ matrix.language }}
         queries: +security-extended, +security-and-quality, +./.github/codeql/queries/
+        # REMOVED THE CONFIG-FILE REFERENCE
 
     - name: Run CodeQL Analysis
       uses: github/codeql-action/analyze@v3
